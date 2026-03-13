@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  stocks    Stock[]
+
+  @@map("users")
+}
+
+model Stock {
+  id        String     @id @default(cuid())
+  userId    String     @map("user_id")
+  stockCode String     @map("stock_code")
+  stockName String     @map("stock_name")
+  createdAt DateTime   @default(now()) @map("created_at")
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      StockData?
+  news      StockNews[]
+
+  @@unique([userId, stockCode])
+  @@map("stocks")
+}
+
+model StockData {
+  id                 String   @id @default(cuid())
+  stockId            String   @unique @map("stock_id")
+  currentPrice       Int?     @map("current_price")
+  marketCap          BigInt?  @map("market_cap")
+  dailyChange        Float?   @map("daily_change")
+  change5d           Float?   @map("change_5d")
+  change20d          Float?   @map("change_20d")
+  change60d          Float?   @map("change_60d")
+  change120d         Float?   @map("change_120d")
+  change240d         Float?   @map("change_240d")
+  foreignOwnership   Float?   @map("foreign_ownership")
+  revenue            BigInt?  @map("revenue")
+  per                Float?
+  pbr                Float?
+  targetPrice        Int?     @map("target_price")
+  investmentOpinion  String?  @map("investment_opinion")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  stock              Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@map("stock_data")
+}
+
+model StockNews {
+  id        String   @id @default(cuid())
+  stockId   String   @map("stock_id")
+  title     String
+  link      String
+  date      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  stock     Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@map("stock_news")
+}
