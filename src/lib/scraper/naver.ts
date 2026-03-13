@@ -271,6 +271,27 @@ export async function fetchNaverRoeDividend(
   }
 }
 
+export async function fetchNaverCompanyOverview(
+  stockCode: string
+): Promise<string | null> {
+  try {
+    const html = await fetchHtml(
+      `https://finance.naver.com/item/main.naver?code=${stockCode}`
+    );
+    const $ = cheerio.load(html);
+
+    const paragraphs: string[] = [];
+    $("#summary_info p").each((_, el) => {
+      const text = $(el).text().trim();
+      if (text) paragraphs.push(text);
+    });
+
+    return paragraphs.length > 0 ? paragraphs.join(" ") : null;
+  } catch {
+    return null;
+  }
+}
+
 function parseNumber(text: string): number | null {
   const cleaned = text.replace(/,/g, "").replace(/\s/g, "").trim();
   if (!cleaned || cleaned === "-" || cleaned === "") return null;

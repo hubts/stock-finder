@@ -10,10 +10,12 @@ import {
   fetchNaverNews,
   fetchNaverConsensus,
   fetchNaverRoeDividend,
+  fetchNaverCompanyOverview,
 } from "./naver";
 
 export interface StockScrapedData {
   stockName: string;
+  companyOverview: string | null;
   currentPrice: number;
   marketCap: number;
   dailyChange: number;
@@ -41,7 +43,7 @@ export async function scrapeStockData(
   stockCode: string
 ): Promise<StockScrapedData> {
   // Fetch all data sources in parallel
-  const [quote, chart, news, daumConsensus, naverConsensus, naverRoeDividend] =
+  const [quote, chart, news, daumConsensus, naverConsensus, naverRoeDividend, companyOverview] =
     await Promise.all([
       fetchDaumQuote(stockCode),
       fetchDaumChart(stockCode, 250),
@@ -49,6 +51,7 @@ export async function scrapeStockData(
       fetchDaumConsensus(stockCode),
       fetchNaverConsensus(stockCode),
       fetchNaverRoeDividend(stockCode),
+      fetchNaverCompanyOverview(stockCode),
     ]);
 
   const changeRates = calculateChangeRates(chart, quote.currentPrice);
@@ -79,6 +82,7 @@ export async function scrapeStockData(
 
   return {
     stockName: quote.stockName,
+    companyOverview,
     currentPrice: quote.currentPrice,
     marketCap: quote.marketCap,
     dailyChange: quote.dailyChange,

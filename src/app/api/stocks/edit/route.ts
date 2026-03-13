@@ -6,6 +6,18 @@ import { serializeBigInt } from "@/lib/serialize";
 
 const BIGINT_FIELDS = new Set(["marketCap", "revenue", "operatingProfit"]);
 
+const STRING_FIELDS = new Set([
+  "investmentOpinion",
+  "opinionDate",
+  "opinionPrevDiff",
+  "opinionBrokerage",
+  "opinionReport",
+  "institutionalBuyPeriod",
+  "foreignOwnershipTrend",
+  "institutionalTrend",
+  "retailAvgPriceTrend",
+]);
+
 const EDITABLE_FIELDS = new Set([
   "currentPrice",
   "marketCap",
@@ -30,6 +42,15 @@ const EDITABLE_FIELDS = new Set([
   "creditRatio",
   "targetPrice",
   "investmentOpinion",
+  "opinionDate",
+  "opinionPrevDiff",
+  "opinionBrokerage",
+  "opinionReport",
+  "institutionalBuyPeriod",
+  "retailAvgPrice",
+  "foreignOwnershipTrend",
+  "institutionalTrend",
+  "retailAvgPriceTrend",
 ]);
 
 export async function POST(request: Request) {
@@ -63,10 +84,12 @@ export async function POST(request: Request) {
   for (const [key, value] of Object.entries(fields)) {
     if (!EDITABLE_FIELDS.has(key)) continue;
 
-    if (value == null) {
+    if (value == null || value === "") {
       dataFields[key] = null;
     } else if (BIGINT_FIELDS.has(key)) {
       dataFields[key] = BigInt(value as number | string);
+    } else if (STRING_FIELDS.has(key)) {
+      dataFields[key] = String(value);
     } else {
       dataFields[key] = value;
     }

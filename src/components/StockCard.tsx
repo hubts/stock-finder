@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 interface StockDataType {
+  companyOverview: string | null;
   currentPrice: number | null;
   marketCap: string | null;
   dailyChange: number | null;
@@ -26,6 +27,15 @@ interface StockDataType {
   creditRatio: number | null;
   targetPrice: number | null;
   investmentOpinion: string | null;
+  opinionDate: string | null;
+  opinionPrevDiff: string | null;
+  opinionBrokerage: string | null;
+  opinionReport: string | null;
+  institutionalBuyPeriod: string | null;
+  retailAvgPrice: number | null;
+  foreignOwnershipTrend: string | null;
+  institutionalTrend: string | null;
+  retailAvgPriceTrend: string | null;
   isManualEdit: boolean;
   updatedAt: string;
 }
@@ -52,86 +62,82 @@ interface StockCardProps {
   onEdit: (stockId: string, fields: Record<string, unknown>) => Promise<void>;
 }
 
-function formatNumber(n: number | null | undefined): string {
+function fmtNum(n: number | null | undefined): string {
   if (n == null) return "-";
   return n.toLocaleString("ko-KR");
 }
 
-function formatBigNumber(n: string | null | undefined): string {
+function fmtDec(n: number | null | undefined, digits = 2): string {
+  if (n == null) return "-";
+  return Number(n.toFixed(digits)).toLocaleString("ko-KR", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function fmtBig(n: string | null | undefined): string {
   if (!n) return "-";
   const num = Number(n);
   if (isNaN(num)) return "-";
-  if (Math.abs(num) >= 1_0000_0000_0000) {
-    return `${(num / 1_0000_0000_0000).toFixed(1)}조`;
-  }
-  if (Math.abs(num) >= 1_0000_0000) {
-    return `${(num / 1_0000_0000).toFixed(0)}억`;
-  }
-  if (Math.abs(num) >= 1_0000) {
-    return `${(num / 1_0000).toFixed(0)}만`;
-  }
+  if (Math.abs(num) >= 1_0000_0000_0000) return `${(num / 1_0000_0000_0000).toFixed(1)}조`;
+  if (Math.abs(num) >= 1_0000_0000) return `${(num / 1_0000_0000).toFixed(0)}억`;
+  if (Math.abs(num) >= 1_0000) return `${(num / 1_0000).toFixed(0)}만`;
   return num.toLocaleString("ko-KR");
 }
 
-function formatChange(n: number | null | undefined): string {
+function fmtChange(n: number | null | undefined): string {
   if (n == null) return "-";
   const sign = n > 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
+  return `${sign}${fmtDec(n)}%`;
 }
 
 function changeColor(n: number | null | undefined): string {
-  if (n == null) return "text-gray-400";
+  if (n == null) return "";
   if (n > 0) return "text-red-600";
   if (n < 0) return "text-blue-600";
-  return "text-gray-600";
+  return "";
 }
 
-function timeAgo(dateStr: string): string {
-  const now = new Date();
-  const updated = new Date(dateStr);
-  const diffMs = now.getTime() - updated.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffMin < 1) return "방금 전";
-  if (diffMin < 60) return `${diffMin}분 전`;
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return updated.toLocaleDateString("ko-KR");
+function fb(value: unknown): string {
+  if (value != null && value !== "" && value !== "-") return "bg-green-100";
+  return "";
 }
 
-// Fields that are editable in manual edit mode
-const EDITABLE_NUMERIC_FIELDS: Array<{
-  key: string;
-  label: string;
-  format: (v: unknown) => string;
-  isBigInt?: boolean;
-}> = [
-  { key: "currentPrice", label: "현재가", format: (v) => formatNumber(v as number) },
-  { key: "marketCap", label: "시가총액", format: (v) => formatBigNumber(v as string), isBigInt: true },
-  { key: "dailyChange", label: "일간등락", format: (v) => formatChange(v as number) },
-  { key: "change5d", label: "5일", format: (v) => formatChange(v as number) },
-  { key: "change20d", label: "20일", format: (v) => formatChange(v as number) },
-  { key: "change60d", label: "60일", format: (v) => formatChange(v as number) },
-  { key: "change120d", label: "120일", format: (v) => formatChange(v as number) },
-  { key: "change240d", label: "240일", format: (v) => formatChange(v as number) },
-  { key: "foreignOwnership", label: "외국인보유", format: (v) => v != null ? `${(v as number).toFixed(2)}%` : "-" },
-  { key: "revenue", label: "매출액", format: (v) => formatBigNumber(v as string), isBigInt: true },
-  { key: "operatingProfit", label: "영업이익", format: (v) => formatBigNumber(v as string), isBigInt: true },
-  { key: "per", label: "PER", format: (v) => v != null ? `${(v as number).toFixed(1)}` : "-" },
-  { key: "pbr", label: "PBR", format: (v) => v != null ? `${(v as number).toFixed(2)}` : "-" },
-  { key: "roe", label: "ROE", format: (v) => v != null ? `${(v as number).toFixed(2)}%` : "-" },
-  { key: "evEbitda", label: "EV/EBITDA", format: (v) => v != null ? `${(v as number).toFixed(1)}` : "-" },
-  { key: "eps", label: "EPS", format: (v) => formatNumber(v as number) },
-  { key: "bps", label: "BPS", format: (v) => formatNumber(v as number) },
-  { key: "dps", label: "DPS", format: (v) => formatNumber(v as number) },
-  { key: "dividendYield", label: "배당수익률", format: (v) => v != null ? `${(v as number).toFixed(2)}%` : "-" },
-  { key: "ipoPrice", label: "공모가", format: (v) => formatNumber(v as number) },
-  { key: "creditRatio", label: "신용잔고비율", format: (v) => v != null ? `${(v as number).toFixed(2)}%` : "-" },
-  { key: "targetPrice", label: "목표주가", format: (v) => v != null ? `${formatNumber(v as number)}원` : "-" },
-  { key: "investmentOpinion", label: "투자의견", format: (v) => (v as string) || "-" },
+// Format a number for edit input display (with commas)
+function fmtEditNum(val: unknown): string {
+  if (val == null || val === "") return "";
+  const num = Number(String(val).replace(/,/g, ""));
+  if (isNaN(num)) return String(val);
+  return num.toLocaleString("ko-KR");
+}
+
+// Strip commas for saving
+function stripCommas(s: string): string {
+  return s.replace(/,/g, "");
+}
+
+type TrendValue = "증가" | "횡보" | "감소" | null;
+const TREND_OPTIONS: TrendValue[] = ["증가", "횡보", "감소"];
+
+const TABLE_CLASS = "w-full border-collapse table-fixed";
+const W6 = "w-[16.666%]";
+const W3 = "w-[33.333%]";
+
+const ALL_KEYS = [
+  "currentPrice", "marketCap", "dailyChange", "change5d", "change20d",
+  "change60d", "change120d", "change240d", "foreignOwnership", "revenue",
+  "operatingProfit", "per", "pbr", "roe", "evEbitda", "eps", "bps", "dps",
+  "dividendYield", "ipoPrice", "creditRatio", "targetPrice", "investmentOpinion",
+  "opinionDate", "opinionPrevDiff", "opinionBrokerage", "opinionReport",
+  "institutionalBuyPeriod", "retailAvgPrice",
+  "foreignOwnershipTrend", "institutionalTrend", "retailAvgPriceTrend",
 ];
+
+const STRING_FIELDS = new Set([
+  "investmentOpinion", "opinionDate", "opinionPrevDiff", "opinionBrokerage",
+  "opinionReport", "institutionalBuyPeriod",
+  "foreignOwnershipTrend", "institutionalTrend", "retailAvgPriceTrend",
+]);
 
 export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCardProps) {
   const [updating, setUpdating] = useState(false);
@@ -148,11 +154,16 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
 
   const handleEditToggle = () => {
     if (!editing && d) {
-      // Initialize edit values from current data
       const values: Record<string, string> = {};
-      for (const field of EDITABLE_NUMERIC_FIELDS) {
-        const val = (d as unknown as Record<string, unknown>)[field.key];
-        values[field.key] = val != null ? String(val) : "";
+      for (const key of ALL_KEYS) {
+        const val = (d as unknown as Record<string, unknown>)[key];
+        if (val == null) {
+          values[key] = "";
+        } else if (STRING_FIELDS.has(key)) {
+          values[key] = String(val);
+        } else {
+          values[key] = fmtEditNum(val);
+        }
       }
       setEditValues(values);
     }
@@ -163,17 +174,15 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
     setSaving(true);
     try {
       const fields: Record<string, unknown> = {};
-      for (const field of EDITABLE_NUMERIC_FIELDS) {
-        const raw = editValues[field.key];
+      for (const key of ALL_KEYS) {
+        const raw = editValues[key];
         if (raw === "" || raw == null) {
-          fields[field.key] = null;
-        } else if (field.key === "investmentOpinion") {
-          fields[field.key] = raw;
+          fields[key] = null;
+        } else if (STRING_FIELDS.has(key)) {
+          fields[key] = raw;
         } else {
-          const num = Number(raw);
-          if (!isNaN(num)) {
-            fields[field.key] = num;
-          }
+          const num = Number(stripCommas(raw));
+          if (!isNaN(num)) fields[key] = num;
         }
       }
       await onEdit(stock.id, fields);
@@ -183,104 +192,287 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
     }
   };
 
+  const handleTrendChange = async (field: string, value: TrendValue) => {
+    await onEdit(stock.id, { [field]: value });
+  };
+
   const updateEditValue = (key: string, value: string) => {
     setEditValues((prev) => ({ ...prev, [key]: value }));
   };
 
+  const th = `${W6} border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 text-center`;
+  const td = `${W6} border border-gray-300 px-2 py-1.5 text-sm text-center`;
+  const th2 = `${W3} border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 text-center`;
+  const td2 = `${W3} border border-gray-300 px-2 py-1.5 text-sm text-center`;
+
+  // Edit input with yellow background to indicate edit mode
+  const ei = (key: string, placeholder = "-") => (
+    <input
+      type="text"
+      value={editValues[key] ?? ""}
+      onChange={(e) => updateEditValue(key, e.target.value)}
+      className="w-full text-center text-sm border-0 bg-yellow-50 focus:outline-none focus:bg-yellow-100 rounded"
+      placeholder={placeholder}
+    />
+  );
+
+  // Border style changes when editing
+  const cardBorder = editing
+    ? "bg-white rounded-lg shadow-md border-2 border-amber-400 p-4 relative"
+    : "bg-white rounded-lg shadow-sm border border-gray-300 p-4";
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-5">
+    <div className={cardBorder}>
+      {/* Edit mode badge */}
+      {editing && (
+        <div className="absolute -top-2.5 left-4 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+          수정 중
+        </div>
+      )}
+
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold">{stock.stockName}</h3>
-            <span className="text-xs text-gray-400">{stock.stockCode}</span>
-          </div>
-          {d ? (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {timeAgo(d.updatedAt)} 업데이트
-              </span>
-              <span className="text-xs text-gray-400">
-                {new Date(d.updatedAt).toLocaleString("ko-KR")}
-              </span>
-            </div>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
-              데이터 없음 - 업데이트 필요
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-bold text-green-700">{stock.stockName}</h3>
+          <span className="text-xs text-gray-400">{stock.stockCode}</span>
+          {d && (
+            <span className="text-xs text-gray-400 ml-2">
+              ({new Date(d.updatedAt).toLocaleString("ko-KR")} 업데이트)
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          {d && (
-            <div className="text-right">
-              <p className={`text-xl font-bold ${changeColor(d.dailyChange)}`}>
-                {formatNumber(d.currentPrice)}
-                <span className="text-sm text-gray-400 ml-1">원</span>
-              </p>
-              <p className={`text-sm font-medium ${changeColor(d.dailyChange)}`}>
-                {formatChange(d.dailyChange)}
-              </p>
-            </div>
-          )}
-        </div>
+        {d && (
+          <div className="text-right">
+            <span className={`text-xl font-bold ${changeColor(d.dailyChange)}`}>
+              {fmtNum(d.currentPrice)}원
+            </span>
+            <span className={`text-sm ml-2 ${changeColor(d.dailyChange)}`}>
+              {fmtChange(d.dailyChange)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 기업개요 */}
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">기업 개요</h4>
-        <div className="grid grid-cols-5 gap-3 p-3 bg-gray-50 rounded-lg">
-          <EditableItem editing={editing} field="marketCap" label="시가총액" value={d ? formatBigNumber(d.marketCap) : "-"} editValue={editValues.marketCap} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="per" label="PER" value={d?.per != null ? `${d.per.toFixed(1)}` : "-"} editValue={editValues.per} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="pbr" label="PBR" value={d?.pbr != null ? `${d.pbr.toFixed(2)}` : "-"} editValue={editValues.pbr} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="roe" label="ROE" value={d?.roe != null ? `${d.roe.toFixed(2)}%` : "-"} editValue={editValues.roe} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="evEbitda" label="EV/EBITDA" value={d?.evEbitda != null ? `${d.evEbitda.toFixed(1)}` : "-"} editValue={editValues.evEbitda} onChange={updateEditValue} />
+        <h4 className="text-sm font-bold text-gray-800 mb-1">기업개요</h4>
+        <div className={`border border-gray-300 px-3 py-2 text-xs text-gray-700 leading-relaxed ${fb(d?.companyOverview)}`}>
+          {d?.companyOverview || "기업개요 정보 없음 - 동기화를 눌러주세요"}
         </div>
-        <div className="grid grid-cols-5 gap-3 p-3 bg-gray-50 rounded-lg mt-1">
-          <EditableItem editing={editing} field="revenue" label="매출액" value={d ? formatBigNumber(d.revenue) : "-"} editValue={editValues.revenue} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="operatingProfit" label="영업이익" value={d ? formatBigNumber(d.operatingProfit) : "-"} editValue={editValues.operatingProfit} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="eps" label="EPS" value={d?.eps != null ? formatNumber(d.eps) : "-"} editValue={editValues.eps} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="bps" label="BPS" value={d?.bps != null ? formatNumber(d.bps) : "-"} editValue={editValues.bps} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="dividendYield" label="배당수익률" value={d?.dividendYield != null ? `${d.dividendYield.toFixed(2)}%` : "-"} editValue={editValues.dividendYield} onChange={updateEditValue} />
-        </div>
+        <table className={`${TABLE_CLASS} -mt-px`}>
+          <thead>
+            <tr>
+              <th className={th}>현재가</th>
+              <th className={th}>시총금액</th>
+              <th className={th}>PER</th>
+              <th className={th}>PBR</th>
+              <th className={th}>ROE</th>
+              <th className={th}>EV/EBITDA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={`${td} ${fb(d?.currentPrice)} font-semibold`}>
+                {editing ? ei("currentPrice") : (d?.currentPrice != null ? `${fmtNum(d.currentPrice)}원` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.marketCap)}`}>
+                {editing ? ei("marketCap") : fmtBig(d?.marketCap)}
+              </td>
+              <td className={`${td} ${fb(d?.per)}`}>
+                {editing ? ei("per") : (d?.per != null ? fmtDec(d.per) : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.pbr)}`}>
+                {editing ? ei("pbr") : (d?.pbr != null ? fmtDec(d.pbr) : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.roe)}`}>
+                {editing ? ei("roe") : (d?.roe != null ? `${fmtDec(d.roe)}%` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.evEbitda)}`}>
+                {editing ? ei("evEbitda") : (d?.evEbitda != null ? fmtDec(d.evEbitda) : "-")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <table className={`${TABLE_CLASS} -mt-px`}>
+          <thead>
+            <tr>
+              <th className={th}>공모가</th>
+              <th className={th}>매출액</th>
+              <th className={th}>영업이익</th>
+              <th className={th}>신용잔고비율</th>
+              <th className={th}>배당금</th>
+              <th className={th}>배당수익률</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={`${td} ${fb(d?.ipoPrice)}`}>
+                {editing ? ei("ipoPrice") : (d?.ipoPrice != null ? `${fmtNum(d.ipoPrice)}원` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.revenue)}`}>
+                {editing ? ei("revenue") : fmtBig(d?.revenue)}
+              </td>
+              <td className={`${td} ${fb(d?.operatingProfit)}`}>
+                {editing ? ei("operatingProfit") : fmtBig(d?.operatingProfit)}
+              </td>
+              <td className={`${td} ${fb(d?.creditRatio)}`}>
+                {editing ? ei("creditRatio") : (d?.creditRatio != null ? `${fmtDec(d.creditRatio)}%` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.dps)}`}>
+                {editing ? ei("dps") : (d?.dps != null ? `${fmtNum(d.dps)}원` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.dividendYield)}`}>
+                {editing ? ei("dividendYield") : (d?.dividendYield != null ? `${fmtDec(d.dividendYield)}%` : "-")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {/* 투자의견 */}
+      {/* 투자의견 - all 6 columns editable */}
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">투자 의견</h4>
-        <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
-          <EditableItem editing={editing} field="targetPrice" label="목표주가" value={d?.targetPrice ? `${formatNumber(d.targetPrice)}원` : "-"} editValue={editValues.targetPrice} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="investmentOpinion" label="투자의견" value={d?.investmentOpinion || "-"} editValue={editValues.investmentOpinion} onChange={updateEditValue} />
-        </div>
+        <h4 className="text-sm font-bold text-gray-800 mb-1">투자의견</h4>
+        <table className={TABLE_CLASS}>
+          <thead>
+            <tr>
+              <th className={th}>일자</th>
+              <th className={th}>목표주가</th>
+              <th className={th}>이전대비</th>
+              <th className={th}>투자의견</th>
+              <th className={th}>증권사</th>
+              <th className={th}>리포트</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={`${td} ${fb(d?.opinionDate)}`}>
+                {editing ? ei("opinionDate", "2025-03-13") : (d?.opinionDate || "-")}
+              </td>
+              <td className={`${td} ${fb(d?.targetPrice)}`}>
+                {editing ? ei("targetPrice") : (d?.targetPrice ? `${fmtNum(d.targetPrice)}원` : "-")}
+              </td>
+              <td className={`${td} ${fb(d?.opinionPrevDiff)}`}>
+                {editing ? ei("opinionPrevDiff", "+10%") : (d?.opinionPrevDiff || (
+                  d?.targetPrice && d?.currentPrice
+                    ? `${(((d.targetPrice - d.currentPrice) / d.currentPrice) * 100).toFixed(1)}%`
+                    : "-"
+                ))}
+              </td>
+              <td className={`${td} ${fb(d?.investmentOpinion)}`}>
+                {editing ? ei("investmentOpinion", "매수") : (d?.investmentOpinion || "-")}
+              </td>
+              <td className={`${td} ${fb(d?.opinionBrokerage)}`}>
+                {editing ? ei("opinionBrokerage", "증권사명") : (d?.opinionBrokerage || "-")}
+              </td>
+              <td className={`${td} ${fb(d?.opinionReport)}`}>
+                {editing ? ei("opinionReport", "리포트명") : (d?.opinionReport || "-")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* 등락률 */}
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">등락률</h4>
-        <div className="grid grid-cols-6 gap-3 p-3 bg-gray-50 rounded-lg">
-          <EditableItem editing={editing} field="dailyChange" label="오늘" value={d ? formatChange(d.dailyChange) : "-"} className={d ? changeColor(d.dailyChange) : "text-gray-400"} editValue={editValues.dailyChange} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="change5d" label="5일" value={d ? formatChange(d.change5d) : "-"} className={d ? changeColor(d.change5d) : "text-gray-400"} editValue={editValues.change5d} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="change20d" label="20일" value={d ? formatChange(d.change20d) : "-"} className={d ? changeColor(d.change20d) : "text-gray-400"} editValue={editValues.change20d} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="change60d" label="60일" value={d ? formatChange(d.change60d) : "-"} className={d ? changeColor(d.change60d) : "text-gray-400"} editValue={editValues.change60d} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="change120d" label="120일" value={d ? formatChange(d.change120d) : "-"} className={d ? changeColor(d.change120d) : "text-gray-400"} editValue={editValues.change120d} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="change240d" label="240일" value={d ? formatChange(d.change240d) : "-"} className={d ? changeColor(d.change240d) : "text-gray-400"} editValue={editValues.change240d} onChange={updateEditValue} />
-        </div>
+        <h4 className="text-sm font-bold text-gray-800 mb-1">등락률</h4>
+        <table className={TABLE_CLASS}>
+          <thead>
+            <tr>
+              <th className={th}>오늘</th>
+              <th className={th}>5일</th>
+              <th className={th}>20일</th>
+              <th className={th}>60일</th>
+              <th className={th}>120일</th>
+              <th className={th}>250일</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={`${td} ${fb(d?.dailyChange)} ${changeColor(d?.dailyChange)} font-semibold`}>
+                {editing ? ei("dailyChange") : fmtChange(d?.dailyChange)}
+              </td>
+              <td className={`${td} ${fb(d?.change5d)} ${changeColor(d?.change5d)} font-semibold`}>
+                {editing ? ei("change5d") : fmtChange(d?.change5d)}
+              </td>
+              <td className={`${td} ${fb(d?.change20d)} ${changeColor(d?.change20d)} font-semibold`}>
+                {editing ? ei("change20d") : fmtChange(d?.change20d)}
+              </td>
+              <td className={`${td} ${fb(d?.change60d)} ${changeColor(d?.change60d)} font-semibold`}>
+                {editing ? ei("change60d") : fmtChange(d?.change60d)}
+              </td>
+              <td className={`${td} ${fb(d?.change120d)} ${changeColor(d?.change120d)} font-semibold`}>
+                {editing ? ei("change120d") : fmtChange(d?.change120d)}
+              </td>
+              <td className={`${td} ${fb(d?.change240d)} ${changeColor(d?.change240d)} font-semibold`}>
+                {editing ? ei("change240d") : fmtChange(d?.change240d)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* 투자자 동향 */}
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">투자자 동향</h4>
-        <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg">
-          <EditableItem editing={editing} field="foreignOwnership" label="외국인보유" value={d?.foreignOwnership != null ? `${d.foreignOwnership.toFixed(2)}%` : "-"} editValue={editValues.foreignOwnership} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="ipoPrice" label="공모가" value={d?.ipoPrice != null ? `${formatNumber(d.ipoPrice)}원` : "-"} editValue={editValues.ipoPrice} onChange={updateEditValue} />
-          <EditableItem editing={editing} field="creditRatio" label="신용잔고비율" value={d?.creditRatio != null ? `${d.creditRatio.toFixed(2)}%` : "-"} editValue={editValues.creditRatio} onChange={updateEditValue} />
-        </div>
+        <h4 className="text-sm font-bold text-gray-800 mb-1">투자자 동향</h4>
+        <table className={TABLE_CLASS}>
+          <thead>
+            <tr>
+              <th colSpan={2} className={th2}>외국인보유</th>
+              <th colSpan={2} className={th2}>기관매수추이</th>
+              <th colSpan={2} className={th2}>개인평단가</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colSpan={2} className={`${td2} ${fb(d?.foreignOwnership)} font-semibold`}>
+                {editing
+                  ? ei("foreignOwnership")
+                  : (d?.foreignOwnership != null ? `${fmtDec(d.foreignOwnership)}%` : "-")}
+              </td>
+              <td colSpan={2} className={`${td2} font-semibold`}>
+                {editing ? ei("institutionalBuyPeriod", "매수기간 4/9") : (
+                  d?.institutionalBuyPeriod
+                    ? <span className="bg-green-500 text-white px-2 py-0.5 rounded text-xs">{d.institutionalBuyPeriod}</span>
+                    : "-"
+                )}
+              </td>
+              <td colSpan={2} className={`${td2} font-semibold`}>
+                {editing ? ei("retailAvgPrice", "25,000") : (
+                  d?.retailAvgPrice != null
+                    ? <span className="bg-green-500 text-white px-2 py-0.5 rounded text-xs">{fmtNum(d.retailAvgPrice)}원</span>
+                    : "-"
+                )}
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2} className={td2}>
+                <TrendCheckboxes
+                  value={(d?.foreignOwnershipTrend as TrendValue) || null}
+                  onChange={(v) => handleTrendChange("foreignOwnershipTrend", v)}
+                />
+              </td>
+              <td colSpan={2} className={td2}>
+                <TrendCheckboxes
+                  value={(d?.institutionalTrend as TrendValue) || null}
+                  onChange={(v) => handleTrendChange("institutionalTrend", v)}
+                />
+              </td>
+              <td colSpan={2} className={td2}>
+                <TrendCheckboxes
+                  value={(d?.retailAvgPriceTrend as TrendValue) || null}
+                  onChange={(v) => handleTrendChange("retailAvgPriceTrend", v)}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-xs text-gray-400 mt-1">* 증가/횡보/감소는 체크하면 바로 반영</p>
       </div>
 
-      {/* 관련 뉴스 */}
+      {/* 관련뉴스 */}
       <div className="mb-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">관련 뉴스</h4>
-        <div className="space-y-1.5 p-3 bg-gray-50 rounded-lg">
+        <h4 className="text-sm font-bold text-gray-800 mb-1">관련뉴스</h4>
+        <div className="border border-gray-300">
           {stock.news.length > 0 ? (
             stock.news.map((n) => (
               <a
@@ -288,126 +480,115 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
                 href={n.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-sm text-blue-600 hover:underline truncate"
+                className="block px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 border-b border-gray-200 last:border-b-0 truncate"
               >
                 {n.title}
-                {n.date && (
-                  <span className="text-gray-400 ml-2 text-xs">{n.date}</span>
-                )}
+                {n.date && <span className="text-gray-400 ml-2 text-xs">{n.date}</span>}
               </a>
             ))
           ) : (
-            <p className="text-sm text-gray-400">뉴스 데이터 없음 - 업데이트를 눌러주세요</p>
+            <>
+              <div className="px-3 py-2 border-b border-gray-200 text-sm text-gray-400">&nbsp;</div>
+              <div className="px-3 py-2 border-b border-gray-200 text-sm text-gray-400">&nbsp;</div>
+              <div className="px-3 py-2 text-sm text-gray-400">&nbsp;</div>
+            </>
           )}
-          <a
-            href={`https://finance.naver.com/item/news.naver?code=${stock.stockCode}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-xs text-gray-500 hover:text-blue-600 mt-2 text-right"
-          >
-            네이버증권 뉴스 더보기 →
-          </a>
         </div>
       </div>
 
-      {/* 하단 링크 */}
-      <div className="flex gap-4 mb-3 p-3 bg-gray-50 rounded-lg">
+      {/* 외부 링크 */}
+      <div className="flex justify-center gap-8 mb-3 text-sm">
         <a
           href={`https://finance.daum.net/quotes/A${stock.stockCode}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-gray-500 hover:text-blue-600"
+          className="text-blue-600 hover:underline inline-flex items-center gap-1"
         >
-          다음증권 더보기 →
+          <span>&#x1F517;</span> 다음증권 더보기
         </a>
         <a
           href={`https://finance.naver.com/item/main.naver?code=${stock.stockCode}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-gray-500 hover:text-blue-600"
+          className="text-blue-600 hover:underline inline-flex items-center gap-1"
         >
-          네이버증권 더보기 →
+          <span>&#x1F517;</span> 네이버증권 더보기
         </a>
       </div>
 
-      {/* 직접작성 체크박스 + 저장 */}
-      <div className="flex items-center gap-3 mb-3">
-        <label className="flex items-center gap-1.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={editing}
-            onChange={handleEditToggle}
-            className="rounded border-gray-300"
-          />
-          <span className="text-sm text-gray-600">직접작성</span>
-        </label>
-        {editing && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            {saving ? "저장 중..." : "저장"}
-          </button>
-        )}
-      </div>
+      {/* 안내 문구 */}
+      <p className="text-xs text-gray-400 mb-3 text-center">
+        * <span className="bg-green-100 px-1">초록색 배경</span>은 동기화로 가져온 정보입니다.
+      </p>
 
-      {/* Action buttons */}
-      <div className="flex justify-end items-center pt-3 border-t gap-2">
-        <button
-          onClick={handleUpdate}
-          disabled={updating}
-          className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-        >
-          {updating ? "수집 중..." : "업데이트"}
-        </button>
-        <button
-          onClick={() => onDelete(stock.id)}
-          className="px-4 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-        >
-          삭제
-        </button>
+      {/* 액션 버튼 */}
+      <div className="flex justify-end items-center pt-3 border-t border-gray-300 gap-2">
+        {editing ? (
+          <>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition disabled:opacity-50"
+            >
+              {saving ? "저장 중..." : "저장"}
+            </button>
+            <button
+              onClick={handleEditToggle}
+              className="px-4 py-1.5 text-sm bg-gray-200 text-gray-700 rounded font-medium hover:bg-gray-300 transition"
+            >
+              취소
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleEditToggle}
+              className="px-4 py-1.5 text-sm bg-amber-500 text-white rounded font-medium hover:bg-amber-600 transition"
+            >
+              직접 수정
+            </button>
+            <button
+              onClick={handleUpdate}
+              disabled={updating}
+              className="px-4 py-1.5 text-sm bg-green-600 text-white rounded font-medium hover:bg-green-700 transition disabled:opacity-50"
+            >
+              {updating ? "수집 중..." : "동기화"}
+            </button>
+            <button
+              onClick={() => onDelete(stock.id)}
+              className="px-4 py-1.5 text-sm bg-red-500 text-white rounded font-medium hover:bg-red-600 transition"
+            >
+              삭제
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function EditableItem({
-  label,
+function TrendCheckboxes({
   value,
-  className = "text-gray-900",
-  editing,
-  field,
-  editValue,
   onChange,
 }: {
-  label: string;
-  value: string;
-  className?: string;
-  editing: boolean;
-  field: string;
-  editValue?: string;
-  onChange: (key: string, value: string) => void;
+  value: TrendValue;
+  onChange: (v: TrendValue) => void;
 }) {
-  if (editing) {
-    return (
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <input
-          type="text"
-          value={editValue ?? ""}
-          onChange={(e) => onChange(field, e.target.value)}
-          className="w-full text-sm border border-gray-300 rounded px-1.5 py-0.5 mt-0.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="-"
-        />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className={`text-sm font-semibold ${className}`}>{value}</p>
+    <div className="flex justify-center gap-3 text-xs">
+      {TREND_OPTIONS.map((option) => (
+        <label key={option} className="flex items-center gap-0.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={value === option}
+            onChange={() => onChange(value === option ? null : option)}
+            className="w-3 h-3 rounded border-gray-300"
+          />
+          <span className={value === option ? "font-bold text-green-700" : "text-gray-500"}>
+            {option}
+          </span>
+        </label>
+      ))}
     </div>
   );
 }

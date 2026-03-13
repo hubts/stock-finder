@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     });
 
     const dataFields = {
+      companyOverview: scraped.companyOverview,
       currentPrice: scraped.currentPrice,
       marketCap: scraped.marketCap ? BigInt(scraped.marketCap) : null,
       dailyChange: scraped.dailyChange,
