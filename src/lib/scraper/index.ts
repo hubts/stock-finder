@@ -9,6 +9,7 @@ import {
   fetchNaverRevenue,
   fetchNaverNews,
   fetchNaverConsensus,
+  fetchNaverRoeDividend,
 } from "./naver";
 
 export interface StockScrapedData {
@@ -25,6 +26,12 @@ export interface StockScrapedData {
   revenue: number | null;
   per: number | null;
   pbr: number | null;
+  operatingProfit: number | null;
+  eps: number | null;
+  bps: number | null;
+  dps: number | null;
+  roe: number | null;
+  dividendYield: number | null;
   targetPrice: number | null;
   investmentOpinion: string | null;
   news: Array<{ title: string; link: string; date: string }>;
@@ -34,13 +41,14 @@ export async function scrapeStockData(
   stockCode: string
 ): Promise<StockScrapedData> {
   // Fetch all data sources in parallel
-  const [quote, chart, news, daumConsensus, naverConsensus] =
+  const [quote, chart, news, daumConsensus, naverConsensus, naverRoeDividend] =
     await Promise.all([
       fetchDaumQuote(stockCode),
       fetchDaumChart(stockCode, 250),
       fetchNaverNews(stockCode),
       fetchDaumConsensus(stockCode),
       fetchNaverConsensus(stockCode),
+      fetchNaverRoeDividend(stockCode),
     ]);
 
   const changeRates = calculateChangeRates(chart, quote.currentPrice);
@@ -77,8 +85,14 @@ export async function scrapeStockData(
     ...changeRates,
     foreignOwnership,
     revenue,
+    operatingProfit: quote.operatingProfit,
     per: quote.per,
     pbr: quote.pbr,
+    eps: quote.eps,
+    bps: quote.bps,
+    dps: quote.dps,
+    roe: naverRoeDividend.roe,
+    dividendYield: naverRoeDividend.dividendYield,
     targetPrice,
     investmentOpinion,
     news,

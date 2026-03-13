@@ -79,6 +79,25 @@ export default function StocksPage() {
     }
   };
 
+  const handleEdit = async (stockId: string, fields: Record<string, unknown>) => {
+    try {
+      const res = await fetch("/api/stocks/edit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stockId, fields }),
+      });
+
+      if (res.ok) {
+        await fetchStocks();
+      } else {
+        const data = await res.json();
+        alert(data.error || "저장에 실패했습니다.");
+      }
+    } catch {
+      alert("저장 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleDelete = async (stockId: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
@@ -125,6 +144,7 @@ export default function StocksPage() {
                 stock={stock as never}
                 onUpdate={handleUpdate}
                 onDelete={handleDelete}
+                onEdit={handleEdit}
               />
             ))}
           </div>

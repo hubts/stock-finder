@@ -23,12 +23,13 @@ export interface DaumQuoteResult {
   marketCap: number;
   dailyChange: number;
   foreignOwnership: number | null;
-  foreignNetBuy: number | null;
-  institutionalNetBuy: number | null;
-  individualNetBuy: number | null;
   revenue: number | null;
+  operatingProfit: number | null;
   per: number | null;
   pbr: number | null;
+  eps: number | null;
+  bps: number | null;
+  dps: number | null;
 }
 
 export async function fetchDaumQuote(
@@ -43,9 +44,6 @@ export async function fetchDaumQuote(
 
   const data = await res.json();
 
-  // investorSummary contains net buy data
-  const investor = data.investorSummary || {};
-
   return {
     stockName: data.name as string,
     currentPrice: data.tradePrice as number,
@@ -54,12 +52,13 @@ export async function fetchDaumQuote(
     foreignOwnership: data.foreignRatio != null
       ? data.foreignRatio * 100
       : null,
-    foreignNetBuy: investor.foreignStraightPurchasePrice ?? null,
-    institutionalNetBuy: investor.institutionStraightPurchasePrice ?? null,
-    individualNetBuy: investor.individualStraightPurchasePrice ?? null,
     revenue: data.sales ?? null,
+    operatingProfit: data.operatingProfit ?? null,
     per: data.per ?? null,
     pbr: data.pbr ?? null,
+    eps: data.eps ?? null,
+    bps: data.bps ?? null,
+    dps: data.dps ?? null,
   };
 }
 

@@ -50,10 +50,17 @@ export async function POST(request: Request) {
       change240d: scraped.change240d,
       foreignOwnership: scraped.foreignOwnership,
       revenue: scraped.revenue ? BigInt(scraped.revenue) : null,
+      operatingProfit: scraped.operatingProfit ? BigInt(scraped.operatingProfit) : null,
       per: scraped.per,
       pbr: scraped.pbr,
+      roe: scraped.roe,
+      eps: scraped.eps,
+      bps: scraped.bps,
+      dps: scraped.dps,
+      dividendYield: scraped.dividendYield,
       targetPrice: scraped.targetPrice,
       investmentOpinion: scraped.investmentOpinion,
+      isManualEdit: false,
     };
 
     await prisma.stockData.upsert({

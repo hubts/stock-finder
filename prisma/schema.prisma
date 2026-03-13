@@ -46,10 +46,20 @@ model StockData {
   change240d         Float?   @map("change_240d")
   foreignOwnership   Float?   @map("foreign_ownership")
   revenue            BigInt?  @map("revenue")
+  operatingProfit    BigInt?  @map("operating_profit")
   per                Float?
   pbr                Float?
+  roe                Float?
+  evEbitda           Float?   @map("ev_ebitda")
+  eps                Float?
+  bps                Float?
+  dps                Float?
+  dividendYield      Float?   @map("dividend_yield")
+  ipoPrice           Int?     @map("ipo_price")
+  creditRatio        Float?   @map("credit_ratio")
   targetPrice        Int?     @map("target_price")
   investmentOpinion  String?  @map("investment_opinion")
+  isManualEdit       Boolean  @default(false) @map("is_manual_edit")
   updatedAt          DateTime @updatedAt @map("updated_at")
   stock              Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
 

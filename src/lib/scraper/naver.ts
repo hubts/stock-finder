@@ -233,6 +233,44 @@ export async function fetchNaverConsensus(
   }
 }
 
+export async function fetchNaverRoeDividend(
+  stockCode: string
+): Promise<{ roe: number | null; dividendYield: number | null }> {
+  try {
+    const html = await fetchHtml(
+      `https://finance.naver.com/item/main.naver?code=${stockCode}`
+    );
+    const $ = cheerio.load(html);
+
+    // ROE: Find th.th_cop_anal13 strong containing "ROE(지배주주)", get first td value
+    let roe: number | null = null;
+    $("th.th_cop_anal13 strong").each((_, el) => {
+      if ($(el).text().includes("ROE(지배주주)")) {
+        const td = $(el).closest("tr").find("td").first();
+        const val = td.text().trim();
+        const parsed = parseNumber(val);
+        if (parsed !== null) {
+          roe = parsed;
+        }
+      }
+    });
+
+    // Dividend yield
+    let dividendYield: number | null = null;
+    const dvrText = $("#_dvr").text().trim();
+    if (dvrText) {
+      const parsed = parseFloat(dvrText);
+      if (!isNaN(parsed)) {
+        dividendYield = parsed;
+      }
+    }
+
+    return { roe, dividendYield };
+  } catch {
+    return { roe: null, dividendYield: null };
+  }
+}
+
 function parseNumber(text: string): number | null {
   const cleaned = text.replace(/,/g, "").replace(/\s/g, "").trim();
   if (!cleaned || cleaned === "-" || cleaned === "") return null;
