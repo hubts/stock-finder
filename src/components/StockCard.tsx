@@ -93,17 +93,16 @@ function fmtChange(n: number | null | undefined): string {
 
 function changeColor(n: number | null | undefined): string {
   if (n == null) return "";
-  if (n > 0) return "text-red-600";
-  if (n < 0) return "text-blue-600";
+  if (n > 0) return "text-rose-400";
+  if (n < 0) return "text-blue-400";
   return "";
 }
 
 function fb(value: unknown): string {
-  if (value != null && value !== "" && value !== "-") return "bg-green-100";
+  if (value != null && value !== "" && value !== "-") return "bg-emerald-500/10";
   return "";
 }
 
-// Format a number for edit input display (with commas)
 function fmtEditNum(val: unknown): string {
   if (val == null || val === "") return "";
   const num = Number(String(val).replace(/,/g, ""));
@@ -111,17 +110,12 @@ function fmtEditNum(val: unknown): string {
   return num.toLocaleString("ko-KR");
 }
 
-// Strip commas for saving
 function stripCommas(s: string): string {
   return s.replace(/,/g, "");
 }
 
 type TrendValue = "증가" | "횡보" | "감소" | null;
 const TREND_OPTIONS: TrendValue[] = ["증가", "횡보", "감소"];
-
-const TABLE_CLASS = "w-full border-collapse table-fixed";
-const W6 = "w-[16.666%]";
-const W3 = "w-[33.333%]";
 
 const ALL_KEYS = [
   "currentPrice", "marketCap", "dailyChange", "change5d", "change20d",
@@ -200,50 +194,45 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
     setEditValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const th = `${W6} border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 text-center`;
-  const td = `${W6} border border-gray-300 px-2 py-1.5 text-sm text-center`;
-  const th2 = `${W3} border border-gray-300 px-2 py-1.5 text-xs font-semibold text-gray-700 bg-gray-100 text-center`;
-  const td2 = `${W3} border border-gray-300 px-2 py-1.5 text-sm text-center`;
+  const th = "border border-white/[0.06] px-2 py-2 text-xs font-semibold text-white/50 bg-white/[0.03] text-center";
+  const td = "border border-white/[0.06] px-2 py-2 text-sm text-white/80 text-center";
 
-  // Edit input with yellow background to indicate edit mode
   const ei = (key: string, placeholder = "-") => (
     <input
       type="text"
       value={editValues[key] ?? ""}
       onChange={(e) => updateEditValue(key, e.target.value)}
-      className="w-full text-center text-sm border-0 bg-yellow-50 focus:outline-none focus:bg-yellow-100 rounded"
+      className="w-full text-center text-sm border-0 bg-amber-500/10 text-amber-200 focus:outline-none focus:bg-amber-500/20 rounded px-1"
       placeholder={placeholder}
     />
   );
 
-  // Border style changes when editing
-  const cardBorder = editing
-    ? "bg-white rounded-lg shadow-md border-2 border-amber-400 p-4 relative"
-    : "bg-white rounded-lg shadow-sm border border-gray-300 p-4";
+  const cardStyle = editing
+    ? "backdrop-blur-xl bg-white/[0.05] rounded-2xl border-2 border-amber-500/40 p-5 relative shadow-xl shadow-amber-500/5"
+    : "backdrop-blur-xl bg-white/[0.04] rounded-2xl border border-white/[0.08] p-5 shadow-xl shadow-black/20";
 
   return (
-    <div className={cardBorder}>
-      {/* Edit mode badge */}
+    <div className={cardStyle}>
       {editing && (
-        <div className="absolute -top-2.5 left-4 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded">
+        <div className="absolute -top-2.5 left-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-0.5 rounded-full shadow-lg shadow-amber-500/30">
           수정 중
         </div>
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-bold text-green-700">{stock.stockName}</h3>
-          <span className="text-xs text-gray-400">{stock.stockCode}</span>
+          <h3 className="text-lg font-bold text-emerald-400">{stock.stockName}</h3>
+          <span className="text-xs text-white/30">{stock.stockCode}</span>
           {d && (
-            <span className="text-xs text-gray-400 ml-2">
+            <span className="text-xs text-white/20 ml-2">
               ({new Date(d.updatedAt).toLocaleString("ko-KR")} 업데이트)
             </span>
           )}
         </div>
         {d && (
           <div className="text-right">
-            <span className={`text-xl font-bold ${changeColor(d.dailyChange)}`}>
+            <span className={`text-xl font-bold ${changeColor(d.dailyChange)} ${!changeColor(d.dailyChange) ? "text-white" : ""}`}>
               {fmtNum(d.currentPrice)}원
             </span>
             <span className={`text-sm ml-2 ${changeColor(d.dailyChange)}`}>
@@ -254,12 +243,12 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
       </div>
 
       {/* 기업개요 */}
-      <div className="mb-3">
-        <h4 className="text-sm font-bold text-gray-800 mb-1">기업개요</h4>
-        <div className={`border border-gray-300 px-3 py-2 text-xs text-gray-700 leading-relaxed ${fb(d?.companyOverview)}`}>
+      <div className="mb-4">
+        <h4 className="text-sm font-bold text-white/70 mb-2">기업개요</h4>
+        <div className={`border border-white/[0.06] rounded-xl px-3 py-2.5 text-xs text-white/60 leading-relaxed ${fb(d?.companyOverview)}`}>
           {d?.companyOverview || "기업개요 정보 없음 - 동기화를 눌러주세요"}
         </div>
-        <table className={`${TABLE_CLASS} -mt-px`}>
+        <table className="w-full border-collapse table-fixed mt-2">
           <thead>
             <tr>
               <th className={th}>현재가</th>
@@ -293,7 +282,7 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
             </tr>
           </tbody>
         </table>
-        <table className={`${TABLE_CLASS} -mt-px`}>
+        <table className="w-full border-collapse table-fixed -mt-px">
           <thead>
             <tr>
               <th className={th}>공모가</th>
@@ -329,10 +318,10 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
         </table>
       </div>
 
-      {/* 투자의견 - all 6 columns editable */}
-      <div className="mb-3">
-        <h4 className="text-sm font-bold text-gray-800 mb-1">투자의견</h4>
-        <table className={TABLE_CLASS}>
+      {/* 투자의견 */}
+      <div className="mb-4">
+        <h4 className="text-sm font-bold text-white/70 mb-2">투자의견</h4>
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr>
               <th className={th}>일자</th>
@@ -373,9 +362,9 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
       </div>
 
       {/* 등락률 */}
-      <div className="mb-3">
-        <h4 className="text-sm font-bold text-gray-800 mb-1">등락률</h4>
-        <table className={TABLE_CLASS}>
+      <div className="mb-4">
+        <h4 className="text-sm font-bold text-white/70 mb-2">등락률</h4>
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr>
               <th className={th}>오늘</th>
@@ -412,52 +401,52 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
       </div>
 
       {/* 투자자 동향 */}
-      <div className="mb-3">
-        <h4 className="text-sm font-bold text-gray-800 mb-1">투자자 동향</h4>
-        <table className={TABLE_CLASS}>
+      <div className="mb-4">
+        <h4 className="text-sm font-bold text-white/70 mb-2">투자자 동향</h4>
+        <table className="w-full border-collapse table-fixed">
           <thead>
             <tr>
-              <th colSpan={2} className={th2}>외국인보유</th>
-              <th colSpan={2} className={th2}>기관매수추이</th>
-              <th colSpan={2} className={th2}>개인평단가</th>
+              <th colSpan={2} className={`${th} w-[33.333%]`}>외국인보유</th>
+              <th colSpan={2} className={`${th} w-[33.333%]`}>기관매수추이</th>
+              <th colSpan={2} className={`${th} w-[33.333%]`}>개인평단가</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td colSpan={2} className={`${td2} ${fb(d?.foreignOwnership)} font-semibold`}>
+              <td colSpan={2} className={`${td} w-[33.333%] ${fb(d?.foreignOwnership)} font-semibold`}>
                 {editing
                   ? ei("foreignOwnership")
                   : (d?.foreignOwnership != null ? `${fmtDec(d.foreignOwnership)}%` : "-")}
               </td>
-              <td colSpan={2} className={`${td2} font-semibold`}>
+              <td colSpan={2} className={`${td} w-[33.333%] font-semibold`}>
                 {editing ? ei("institutionalBuyPeriod", "매수기간 4/9") : (
                   d?.institutionalBuyPeriod
-                    ? <span className="bg-green-500 text-white px-2 py-0.5 rounded text-xs">{d.institutionalBuyPeriod}</span>
+                    ? <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg text-xs">{d.institutionalBuyPeriod}</span>
                     : "-"
                 )}
               </td>
-              <td colSpan={2} className={`${td2} font-semibold`}>
+              <td colSpan={2} className={`${td} w-[33.333%] font-semibold`}>
                 {editing ? ei("retailAvgPrice", "25,000") : (
                   d?.retailAvgPrice != null
-                    ? <span className="bg-green-500 text-white px-2 py-0.5 rounded text-xs">{fmtNum(d.retailAvgPrice)}원</span>
+                    ? <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg text-xs">{fmtNum(d.retailAvgPrice)}원</span>
                     : "-"
                 )}
               </td>
             </tr>
             <tr>
-              <td colSpan={2} className={td2}>
+              <td colSpan={2} className={`${td} w-[33.333%]`}>
                 <TrendCheckboxes
                   value={(d?.foreignOwnershipTrend as TrendValue) || null}
                   onChange={(v) => handleTrendChange("foreignOwnershipTrend", v)}
                 />
               </td>
-              <td colSpan={2} className={td2}>
+              <td colSpan={2} className={`${td} w-[33.333%]`}>
                 <TrendCheckboxes
                   value={(d?.institutionalTrend as TrendValue) || null}
                   onChange={(v) => handleTrendChange("institutionalTrend", v)}
                 />
               </td>
-              <td colSpan={2} className={td2}>
+              <td colSpan={2} className={`${td} w-[33.333%]`}>
                 <TrendCheckboxes
                   value={(d?.retailAvgPriceTrend as TrendValue) || null}
                   onChange={(v) => handleTrendChange("retailAvgPriceTrend", v)}
@@ -466,13 +455,13 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
             </tr>
           </tbody>
         </table>
-        <p className="text-xs text-gray-400 mt-1">* 증가/횡보/감소는 체크하면 바로 반영</p>
+        <p className="text-xs text-white/20 mt-1.5">* 증가/횡보/감소는 체크하면 바로 반영</p>
       </div>
 
       {/* 관련뉴스 */}
-      <div className="mb-3">
-        <h4 className="text-sm font-bold text-gray-800 mb-1">관련뉴스</h4>
-        <div className="border border-gray-300">
+      <div className="mb-4">
+        <h4 className="text-sm font-bold text-white/70 mb-2">관련뉴스</h4>
+        <div className="border border-white/[0.06] rounded-xl overflow-hidden">
           {stock.news.length > 0 ? (
             stock.news.map((n) => (
               <a
@@ -480,61 +469,67 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
                 href={n.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 border-b border-gray-200 last:border-b-0 truncate"
+                className="block px-3 py-2.5 text-sm text-blue-300/80 hover:bg-white/[0.04] border-b border-white/[0.04] last:border-b-0 truncate transition"
               >
                 {n.title}
-                {n.date && <span className="text-gray-400 ml-2 text-xs">{n.date}</span>}
+                {n.date && <span className="text-white/20 ml-2 text-xs">{n.date}</span>}
               </a>
             ))
           ) : (
             <>
-              <div className="px-3 py-2 border-b border-gray-200 text-sm text-gray-400">&nbsp;</div>
-              <div className="px-3 py-2 border-b border-gray-200 text-sm text-gray-400">&nbsp;</div>
-              <div className="px-3 py-2 text-sm text-gray-400">&nbsp;</div>
+              <div className="px-3 py-2.5 border-b border-white/[0.04] text-sm text-white/10">&nbsp;</div>
+              <div className="px-3 py-2.5 border-b border-white/[0.04] text-sm text-white/10">&nbsp;</div>
+              <div className="px-3 py-2.5 text-sm text-white/10">&nbsp;</div>
             </>
           )}
         </div>
       </div>
 
       {/* 외부 링크 */}
-      <div className="flex justify-center gap-8 mb-3 text-sm">
+      <div className="flex justify-center gap-8 mb-4 text-sm">
         <a
           href={`https://finance.daum.net/quotes/A${stock.stockCode}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline inline-flex items-center gap-1"
+          className="text-blue-400/70 hover:text-blue-300 inline-flex items-center gap-1.5 transition"
         >
-          <span>&#x1F517;</span> 다음증권 더보기
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          다음증권 더보기
         </a>
         <a
           href={`https://finance.naver.com/item/main.naver?code=${stock.stockCode}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline inline-flex items-center gap-1"
+          className="text-blue-400/70 hover:text-blue-300 inline-flex items-center gap-1.5 transition"
         >
-          <span>&#x1F517;</span> 네이버증권 더보기
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          네이버증권 더보기
         </a>
       </div>
 
       {/* 안내 문구 */}
-      <p className="text-xs text-gray-400 mb-3 text-center">
-        * <span className="bg-green-100 px-1">초록색 배경</span>은 동기화로 가져온 정보입니다.
+      <p className="text-xs text-white/20 mb-4 text-center">
+        * <span className="bg-emerald-500/10 text-emerald-400/60 px-1.5 py-0.5 rounded">초록색 배경</span>은 동기화로 가져온 정보입니다.
       </p>
 
       {/* 액션 버튼 */}
-      <div className="flex justify-end items-center pt-3 border-t border-gray-300 gap-2">
+      <div className="flex justify-end items-center pt-4 border-t border-white/[0.06] gap-2">
         {editing ? (
           <>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded font-medium hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-5 py-2 text-sm bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-600 transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20"
             >
               {saving ? "저장 중..." : "저장"}
             </button>
             <button
               onClick={handleEditToggle}
-              className="px-4 py-1.5 text-sm bg-gray-200 text-gray-700 rounded font-medium hover:bg-gray-300 transition"
+              className="px-5 py-2 text-sm bg-white/[0.06] text-white/60 rounded-xl font-medium hover:bg-white/[0.1] transition"
             >
               취소
             </button>
@@ -543,20 +538,20 @@ export default function StockCard({ stock, onUpdate, onDelete, onEdit }: StockCa
           <>
             <button
               onClick={handleEditToggle}
-              className="px-4 py-1.5 text-sm bg-amber-500 text-white rounded font-medium hover:bg-amber-600 transition"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
             >
               직접 수정
             </button>
             <button
               onClick={handleUpdate}
               disabled={updating}
-              className="px-4 py-1.5 text-sm bg-green-600 text-white rounded font-medium hover:bg-green-700 transition disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-green-600 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
             >
               {updating ? "수집 중..." : "동기화"}
             </button>
             <button
               onClick={() => onDelete(stock.id)}
-              className="px-4 py-1.5 text-sm bg-red-500 text-white rounded font-medium hover:bg-red-600 transition"
+              className="px-4 py-2 text-sm bg-white/[0.06] text-rose-400/80 rounded-xl font-medium hover:bg-rose-500/10 transition"
             >
               삭제
             </button>
@@ -582,9 +577,9 @@ function TrendCheckboxes({
             type="checkbox"
             checked={value === option}
             onChange={() => onChange(value === option ? null : option)}
-            className="w-3 h-3 rounded border-gray-300"
+            className="w-3 h-3 rounded border-white/20 bg-white/[0.06] accent-emerald-500"
           />
-          <span className={value === option ? "font-bold text-green-700" : "text-gray-500"}>
+          <span className={value === option ? "font-bold text-emerald-400" : "text-white/40"}>
             {option}
           </span>
         </label>
